@@ -71,6 +71,11 @@ class Tablero(Tk):
         fila = int(y // 80)
         columna = int(x // 80)
 
+        # Verificar si la casilla seleccionada está dentro del rango del tablero
+        if not (0 <= fila < 8 and 0 <= columna < 8):
+            print("Movimiento fuera de rango")
+            return
+
         # Verificar si la casilla contiene una ficha
         if self.estado_tablero[fila][columna] and self.estado_tablero[fila][columna]['tipo'] == "ficha" \
                 and self.estado_tablero[fila][columna]['color']:
@@ -105,9 +110,74 @@ class Tablero(Tk):
                 # Limpiar la casilla seleccionada después de realizar la acción
                 self.casilla_seleccionada = None
 
-    
+
+    def realizar_movimiento(self, fila_origen, columna_origen, fila_destino, columna_destino):
+        print("Realizando movimiento...")
+
+        # Obtener la información de la ficha que se va a mover
+        ficha = self.estado_tablero[fila_origen][columna_origen]
+        id_ficha = ficha['id']
+
+        # Calcular el cambio en la posición X e Y
+        dx = (columna_destino - columna_origen) * 80
+        dy = (fila_destino - fila_origen) * 80
+        print("Cambio en posición X:", dx)
+        print("Cambio en posición Y:", dy)
+
+        # Verificar la dirección del movimiento
+        if (ficha['color'] == 'blanca' and dy <= 0) or (ficha['color'] == 'oscura' and dy >= 0):
+            print("Movimiento no válido: la ficha no puede moverse hacia atrás.")
+            return
+
+        # Verificar si el movimiento es válido (casilla de destino vacía)
+        if not self.estado_tablero[fila_destino][columna_destino]:
+            # Mover la ficha al centro de la casilla de destino
+            self.tablero.move(id_ficha, dx, dy)
+
+            # Actualizar el estado del tablero
+            self.estado_tablero[fila_destino][columna_destino] = ficha
+            self.estado_tablero[fila_origen][columna_origen] = None
+
+            # Limpiar el resaltado de movimientos
+            self.limpiar_resaltado()
+
+            # Actualizar la interfaz gráfica
+            self.tablero.update()
+
+            # Salir de la función después de mover la ficha
+            return
+
+        # Verificar si hay una ficha enemiga entre la ficha seleccionada y la casilla de destino
+        fila_intermedia = (fila_origen + fila_destino) // 2
+        columna_intermedia = (columna_origen + columna_destino) // 2
+
+        if self.estado_tablero[fila_intermedia][columna_intermedia]:
+            ficha_intermedia = self.estado_tablero[fila_intermedia][columna_intermedia]
+            if ficha_intermedia['color'] != ficha['color']:
+                # Eliminar la ficha enemiga
+                self.eliminar_ficha_enemiga(fila_intermedia, columna_intermedia)
+
+                # Mover la ficha al centro de la casilla de destino
+                self.tablero.move(id_ficha, dx, dy)
+
+                # Actualizar el estado del tablero
+                self.estado_tablero[fila_destino][columna_destino] = ficha
+                self.estado_tablero[fila_origen][columna_origen] = None
+
+                # Limpiar el resaltado de movimientos
+                self.limpiar_resaltado()
+
+                # Actualizar la interfaz gráfica
+                self.tablero.update()
+
+                # Salir de la función después de realizar una captura exitosa
+                return
+
+        print("Movimiento no válido: la casilla de destino está ocupada y no se puede capturar una ficha enemiga.")
+
+
+
     def resaltar_movimientos(self, fila, columna):
-        print("Resaltando movimientos")
         # Limpiar el resaltado de movimientos anterior
         self.limpiar_resaltado()
 
@@ -128,57 +198,7 @@ class Tablero(Tk):
             if 0 <= x < 8 and 0 <= y < 8 and not self.estado_tablero[y][x]:
                 id_casilla = self.obtener_id_casilla(y, x)
                 self.tablero.itemconfig(id_casilla, fill="green")
-                self.casillas_resaltadas.append(id_casilla)  # Almacena los identificadores de las casillas
-
-
-
-
-
-    def realizar_movimiento(self, fila_origen, columna_origen, fila_destino, columna_destino):
-        print("Realizando movimiento...")
-        
-        # Obtener la información de la ficha que se va a mover
-        ficha = self.estado_tablero[fila_origen][columna_origen]
-        id_ficha = ficha['id']
-
-        # Calcular el cambio en la posición X e Y
-        dx = (columna_destino - columna_origen) * 80
-        dy = (fila_destino - fila_origen) * 80
-        print("Cambio en posición X:", dx)
-        print("Cambio en posición Y:", dy)
-
-        # Verificar si la casilla de destino está resaltada en rojo
-        if (fila_destino, columna_destino) in self.casillas_resaltadas:
-            # Verificar si hay una ficha enemiga en la casilla de destino
-            if self.estado_tablero[fila_destino][columna_destino]:
-                # Si hay una ficha enemiga, eliminarla del tablero
-                self.eliminar_ficha_enemiga(fila_destino, columna_destino)
-
-        # Mover la ficha al centro de la casilla de destino
-        self.tablero.move(id_ficha, dx, dy)
-
-        # Actualizar el estado del tablero
-        self.estado_tablero[fila_destino][columna_destino] = ficha
-        self.estado_tablero[fila_origen][columna_origen] = None
-
-        # Limpiar el resaltado de movimientos
-        self.limpiar_resaltado()
-
-        # Limpiar la casilla seleccionada después de realizar el movimiento
-        self.casilla_seleccionada = None
-
-        # Actualizar la interfaz gráfica
-        self.tablero.update()
-
-        # Verificar si la ficha se movió en diagonal y hay una ficha enemiga entre origen y destino
-        if abs(columna_destino - columna_origen) == 1 and abs(fila_destino - fila_origen) == 1:
-            # Obtener la posición de la ficha enemiga
-            fila_enemiga = (fila_destino + fila_origen) // 2
-            columna_enemiga = (columna_destino + columna_origen) // 2
-            # Eliminar la ficha enemiga
-            self.eliminar_ficha_enemiga(fila_enemiga, columna_enemiga)
-
-
+                self.casillas_resaltadas.append(id_casilla)
 
     def resaltar_fichas_enemigas(self, fila, columna):
         # Obtener información de la ficha seleccionada
@@ -191,29 +211,24 @@ class Tablero(Tk):
         if es_reina:
             direcciones.extend([(1, -1), (-1, -1), (1, 1), (-1, 1)])
 
-        # Resaltar las casillas adyacentes a las esquinas de la ficha
+        # Resaltar las casillas adyacentes a las esquinas de la ficha que contienen una ficha enemiga
         for dx, dy in direcciones:
             x = columna + dx
             y = fila + dy
             if 0 <= x < 8 and 0 <= y < 8 and self.estado_tablero[y][x]:
                 if self.estado_tablero[y][x]['color'] != color_ficha:
-                    print("Casilla adyacente contiene una ficha enemiga en fila:", y, "columna:", x)
                     # Casilla adyacente contiene una ficha enemiga, verificar si la siguiente casilla está vacía
                     x_next = x + dx
                     y_next = y + dy
                     if 0 <= x_next < 8 and 0 <= y_next < 8 and not self.estado_tablero[y_next][x_next]:
                         id_casilla = self.obtener_id_casilla(y_next, x_next)
-                        print("Resaltando casilla adyacente vacía en fila:", y_next, "columna:", x_next)
                         self.tablero.itemconfig(id_casilla, fill="red")
-                        self.casillas_resaltadas.append((y_next, x_next))  # Almacena las coordenadas de las casillas
+                        self.casillas_resaltadas.append(id_casilla)
 
-                        
     def eliminar_ficha_enemiga(self, fila, columna):
-        print("Eliminando ficha enemiga en fila:", fila, "columna:", columna)
         # Obtener la información de la ficha enemiga en la posición especificada
         ficha = self.estado_tablero[fila][columna]
         if ficha and ficha['tipo'] == 'ficha':
-            print("Ficha enemiga encontrada en fila:", fila, "columna:", columna)
             # Obtener el ID de la ficha enemiga
             id_ficha = ficha['id']
 
@@ -223,7 +238,6 @@ class Tablero(Tk):
             # Actualizar el estado del tablero
             self.estado_tablero[fila][columna] = None
             
-            
     def limpiar_resaltado(self):
         # Limpiar el resaltado de movimientos
         for id_casilla in self.casillas_resaltadas:
@@ -231,8 +245,6 @@ class Tablero(Tk):
             if self.tablero.type(id_casilla) == "rectangle":
                 # Obtener el color original de la casilla
                 color_original = "black" if 'black' in self.tablero.itemcget(id_casilla, 'fill') else "gray"
-                # Imprimir el ID de la casilla
-                print("ID de casilla:", id_casilla)
                 # Restaurar el color original de la casilla
                 self.tablero.itemconfig(id_casilla, fill=color_original)
         # Limpiar la lista de casillas resaltadas
