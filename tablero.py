@@ -128,23 +128,18 @@ class Tablero(Tk):
         if (ficha['color'] == 'blanca' and dy <= 0) or (ficha['color'] == 'oscura' and dy >= 0):
             print("Movimiento no válido: la ficha no puede moverse hacia atrás.")
             return
-
         # Verificar si el movimiento es válido (casilla de destino vacía)
         if not self.estado_tablero[fila_destino][columna_destino]:
             # Mover la ficha al centro de la casilla de destino
             self.tablero.move(id_ficha, dx, dy)
 
-            # Actualizar el estado del tablero
             self.estado_tablero[fila_destino][columna_destino] = ficha
             self.estado_tablero[fila_origen][columna_origen] = None
 
-            # Limpiar el resaltado de movimientos
             self.limpiar_resaltado()
 
-            # Actualizar la interfaz gráfica
             self.tablero.update()
 
-            # Salir de la función después de mover la ficha
             return
 
         # Verificar si hay una ficha enemiga entre la ficha seleccionada y la casilla de destino
